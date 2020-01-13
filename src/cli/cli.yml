@@ -1,0 +1,73 @@
+name: efficacy
+version: "0.1.0"
+author: fwrench
+about: A to-do list implementation
+subcommands:
+    - list:
+        about: Lists the current tasks
+        alias: ls
+    - done:
+        about: Marks a task as complete
+        alias: x
+        args:
+            - ID:
+                help: ID of the task to complete
+                required: true
+    - add:
+        about: Creates new tasks
+        alias: a
+        args:
+            - category:
+                help: Category name
+                short: c
+                long: category
+                takes_value: true
+            - DESCRIPTION:
+                help: Desciption for the new task
+                required: true
+    - clean:
+        about: Cleans up tasks/categories
+    - edit:
+        about: Edits tasks/categories
+        alias: e
+        subcommands:
+            - task:
+                about: Edits a task
+                args:
+                    - ID:
+                        help: ID of the task to edit
+                        required: true
+                    - description:
+                        short: d
+                        help: New description for the task
+                        takes_value: true
+                    - category:
+                        short: c
+                        help: New category for the task
+                        takes_value: true
+            - category:
+                about: Edits a category
+                args:
+                    - OLD_TITLE:
+                        help: Title of the category to edit
+                        required: true
+                    - NEW_TITLE:
+                        help: New title of the category
+                        required: true
+    - delete:
+        about: Deletes tasks/categories
+        alias: d
+        subcommands:
+            - task:
+                about: Deletes a task
+                args:
+                    - ID:
+                        help: ID of the task to delete
+                        required: true
+            - category:
+                about: Deletes a category and all tasks inside of it
+                args:
+                    - TITLE:
+                        help: Name of the category to delete
+    - debug:
+        about: Prints out debug information
