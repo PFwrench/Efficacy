@@ -8,11 +8,14 @@ use super::{errors::EfficacyError, objects, settings::Settings};
 #[derive(Debug)]
 pub struct State<'a> {
     settings: &'a Settings,
-    task_file_path: PathBuf,
+    context_file_path: PathBuf,
+    pub current_context: objects::Context,
+    pub task_file_paths: HashMap<String, PathBuf>,
     pub task_objects: Vec<objects::Task>,
     pub category_map: HashMap<String, Vec<usize>>,
 }
 
+// Core State functionality
 impl<'a> State<'a> {
     /// Checks for existence of or creates directories and files used in maintaining state.
     pub fn new(settings: &'a Settings) -> Result<Self, EfficacyError> {
@@ -24,16 +27,49 @@ impl<'a> State<'a> {
             continue_creating = true;
         }
 
-        let task_file_path =
-            PathBuf::from(&settings.data_file_path).join(PathBuf::from("task.json"));
-        if continue_creating || !task_file_path.exists() {
-            File::create(&task_file_path)?;
+        let default_context = objects::Context {
+            context_name: String::from("default")
+        };
+
+        let context_file_path =
+            PathBuf::from(&settings.data_file_path).join(PathBuf::from("context.json"));
+        if continue_creating || !context_file_path.exists() {
+            let context_serialized = serde_json::to_string(&default_context).unwrap();
+
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&context_file_path)?
+                .write(context_serialized.as_bytes())?;
+
             continue_creating = true;
         }
 
+        let default_task_file_path =
+            PathBuf::from(&settings.data_file_path).join(PathBuf::from("default.json"));
+        if continue_creating || !default_task_file_path.exists() {
+            File::create(&default_task_file_path)?;
+            continue_creating = true;
+        }
+
+        let mut task_file_paths = HashMap::new();
+
+        for entry in std::fs::read_dir(&settings.data_file_path)? {
+            let entry = entry?;
+            let path = entry.path();
+            if !path.as_os_str().eq(context_file_path.as_os_str()) && !path.as_os_str().eq(default_task_file_path.as_os_str()) {
+                let path_key = String::from(path.file_stem().unwrap().to_str().unwrap());
+                task_file_paths.insert(path_key, path);
+            } 
+        }
+
+        task_file_paths.insert(String::from("default"), default_task_file_path);
+
         let mut new_state = State {
             settings,
-            task_file_path,
+            context_file_path,
+            current_context: default_context,
+            task_file_paths,
             task_objects: Vec::new(),
             category_map: HashMap::new(),
         };
@@ -51,24 +87,39 @@ impl<'a> State<'a> {
         Ok(new_state)
     }
 
-    pub fn save(&self) -> Result<(), EfficacyError> {
+    pub fn save(&mut self) -> Result<(), EfficacyError> {
         let tasks_serialized = serde_json::to_string(&self.task_objects).unwrap();
+
+        let fp_result = &self.task_file_paths.get(&self.current_context.context_name);
+
+        let file_path = match fp_result {
+            Some(pb) => pb,
+            None => return Err(EfficacyError::MalformedContextError)
+        };
 
         OpenOptions::new()
             .write(true)
             .truncate(true)
-            .open(&self.task_file_path)?
+            .open(file_path)?
             .write(tasks_serialized.as_bytes())?;
 
-        Ok(())
+        self.save_context()
     }
 
     pub fn load(&mut self) -> Result<(), EfficacyError> {
         let mut tasks_string = String::new();
 
+        self.load_context()?;
+
+        let fp_result = &self.task_file_paths.get(&self.current_context.context_name);
+        let file_path = match fp_result {
+            Some(pb) => pb,
+            None => return Err(EfficacyError::MalformedContextError)
+        };
+
         OpenOptions::new()
             .read(true)
-            .open(&self.task_file_path)?
+            .open(file_path)?
             .read_to_string(&mut tasks_string)?;
 
         let tasks: Vec<objects::Task> = match serde_json::from_str(&tasks_string[..]) {
@@ -84,7 +135,10 @@ impl<'a> State<'a> {
 
         Ok(())
     }
+}
 
+// Category map operations
+impl<'a> State<'a> {
     pub fn add_to_category_map(&mut self, task: &objects::Task, id: usize) {
         match &task.category {
             Some(c) => match self.category_map.get_mut(c) {
@@ -122,6 +176,111 @@ impl<'a> State<'a> {
                     }
                 },
             }
+        }
+    }
+}
+
+// Context operations
+impl<'a> State<'a> {
+    pub fn save_context(&self) -> Result<(), EfficacyError> {
+        let context_serialized = serde_json::to_string(&self.current_context).unwrap();
+            
+        OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(&self.context_file_path)?
+            .write(context_serialized.as_bytes())?;
+
+        Ok(())
+    }
+
+    pub fn load_context(&mut self) -> Result<(), EfficacyError> {
+        let mut ctx_string = String::new();
+
+        OpenOptions::new()
+            .read(true)
+            .open(&self.context_file_path)?
+            .read_to_string(&mut ctx_string)?;
+
+        self.current_context = match serde_json::from_str(&ctx_string[..]) {
+            Ok(o) => o,
+            Err(_) => objects::Context {
+                context_name: String::from("default")
+            }
+        };
+
+        Ok(())
+    }
+
+    pub fn new_context(&mut self, context_name: &String) -> Result<(), EfficacyError> {
+        if context_name.eq(&String::from("default")) {
+            println!("Cannot make a new context with the name 'default', that context is reserved.");
+            return Err(EfficacyError::BadContextNameError);
+        }
+
+        let trimmed_context_name = String::from(context_name.trim());
+        if trimmed_context_name.contains(" ") {
+            return Err(EfficacyError::BadContextNameError);
+        }
+
+        let new_context_task_file_path =
+            PathBuf::from(&self.settings.data_file_path).join(PathBuf::from(format!("{}{}", &trimmed_context_name, ".json")));
+
+        std::fs::File::create(&new_context_task_file_path)?;
+
+        self.task_file_paths.insert(trimmed_context_name.clone(), new_context_task_file_path);
+
+        self.change_context(&trimmed_context_name)
+    }
+
+    pub fn change_context(&mut self, context_name: &String) -> Result<(), EfficacyError> {
+        if !self.context_exists(context_name) {
+            println!("Context '{}' does not exist", context_name);
+            return Err(EfficacyError::BadContextNameError);
+        }
+
+        self.save()?;
+
+        if !self.task_file_paths.contains_key(context_name) {
+            return Err(EfficacyError::BadContextNameError);
+        }
+
+        self.current_context.context_name = context_name.clone();
+        self.save_context()?;
+        self.load()?;
+        self.rebuild_category_map();
+
+        Ok(())
+    }
+
+    pub fn delete_context(&mut self, context_name: &String) -> Result<(), EfficacyError> {
+        if context_name.eq("default") {
+            println!("Cannot delete the default context.");
+            return Ok(());
+        }
+
+        if context_name.eq(&self.current_context.context_name) {
+            println!("Cannot delete the current context. Switch to another context before deleting.");
+            return Ok(());
+        }
+
+        let file_to_delete = match self.task_file_paths.get(context_name) {
+            Some(p) => p,
+            None => {
+                println!("Context given does not exist.");
+                return Ok(());
+            }
+        };
+
+        std::fs::remove_file(file_to_delete)?;
+
+        Ok(())
+    }
+
+    pub fn context_exists(&self, context_name: &String) -> bool {
+        match self.task_file_paths.get(context_name) {
+            Some(_) => true,
+            None => false
         }
     }
 }

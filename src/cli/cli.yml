@@ -6,6 +6,11 @@ subcommands:
     - list:
         about: Lists the current tasks
         alias: ls
+        args:
+            - context:
+                short: -c
+                long: context
+                help: Specifies that contexts should be listed
     - done:
         about: Marks a task as complete
         alias: x
@@ -27,6 +32,16 @@ subcommands:
                 required: true
     - clean:
         about: Cleans up tasks/categories
+    - context:
+        about: Switches contexts
+        alias: ctx
+        args:
+            - CONTEXT:
+                help: Name of the context
+            - new:
+                short: n
+                long: new
+                help: Specifies that this context should be a new one
     - edit:
         about: Edits tasks/categories
         alias: e
@@ -69,5 +84,10 @@ subcommands:
                 args:
                     - TITLE:
                         help: Name of the category to delete
+            - context:
+                about: Deletes a context and all data associated with it
+                args:
+                    - CONTEXT:
+                        help: Name of the context to delete
     - debug:
         about: Prints out debug information

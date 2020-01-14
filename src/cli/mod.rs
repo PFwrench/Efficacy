@@ -10,8 +10,12 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
     let matches = App::from_yaml(yaml).get_matches();
 
     // LS command
-    if let Some(_) = matches.subcommand_matches("list") {
-        println!("{}", eff.list()?);
+    if let Some(matches) = matches.subcommand_matches("list") {
+        if matches.is_present("context") {
+            println!("{}", eff.list_contexts()?);
+        } else {
+            println!("{}", eff.list()?);   
+        }
 
     // DONE command
     } else if let Some(matches) = matches.subcommand_matches("done") {
@@ -76,11 +80,40 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
                 Ok(_) => println!("{}", eff.list()?),
                 Err(e) => println!("There was an error in deleting the category: {}", e),
             }
+        } else if let Some(matches) = matches.subcommand_matches("context") {
+            let context = value_t_or_exit!(matches.value_of("CONTEXT"), String);
+            match eff.delete_context(&context) {
+                Ok(_) => println!("Context '{}' deleted successfully.", context),
+                Err(e) => println!("Error when deleting context: {:?}", e)
+            }
         }
 
     // CLEAN command
     } else if let Some(_) = matches.subcommand_matches("clean") {
         eff.clean()?;
+        println!("{}", eff.list()?);
+
+    // CONTEXT command
+    } else if let Some(matches) = matches.subcommand_matches("context") {
+        let context = match matches.value_of("CONTEXT") {
+            Some(s) => String::from(s),
+            None => String::from("default")
+        };
+        if matches.is_present("new") {
+            match eff.new_context(&context) {
+                Ok(_) => {
+                    println!("Context '{}' created successfully! Switched to '{0}'", context);
+                    return Ok(());
+                },
+                Err(_) => return Ok(())
+            }
+        } else {
+            match eff.change_context(&context) {
+                Ok(_) => (),
+                Err(_) => return Ok(())
+            }
+        }
+
         println!("{}", eff.list()?);
 
     // DEBUG command

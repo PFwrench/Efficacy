@@ -5,6 +5,8 @@ pub enum EfficacyError {
     SerdeJsonError(serde_json::Error),
     MismatchedIdError,
     NonexistentCategoryError,
+    MalformedContextError,
+    BadContextNameError,
     Other,
 }
 

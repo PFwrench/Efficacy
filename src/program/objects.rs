@@ -12,3 +12,8 @@ pub struct Task {
     pub state: TaskState,
     pub category: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Context {
+    pub context_name: String
+}

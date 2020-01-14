@@ -41,6 +41,18 @@ pub fn format_category(category: &String, ids: &Vec<usize>) -> String {
     new_string
 }
 
+pub fn format_context(context: &String, is_current: bool) -> String {
+    let mut new_string = String::new();
+
+    if is_current {
+        new_string.push_str(&format!("~{}~", &context.italic().to_string()));
+    } else {
+        new_string.push_str(&context.to_string());
+    }
+    
+    new_string
+}
+
 pub fn format_nothing() -> String {
     String::from("No tasks!").bright_black().to_string()
 }

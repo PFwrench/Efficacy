@@ -6,6 +6,8 @@ mod state;
 
 use itertools::{rev, sorted};
 
+type EfficacyResult<T> = Result<T, errors::EfficacyError>;
+
 #[derive(Debug)]
 pub struct Efficacy<'a> {
     config: &'a settings::Settings,
@@ -13,7 +15,7 @@ pub struct Efficacy<'a> {
 }
 
 impl<'a> Efficacy<'a> {
-    pub fn init(config: &'a settings::Settings) -> Result<Efficacy<'a>, errors::EfficacyError> {
+    pub fn init(config: &'a settings::Settings) -> EfficacyResult<Efficacy<'a>> {
         Ok(Efficacy {
             config,
             state: match state::State::new(&config) {
@@ -30,7 +32,7 @@ impl<'a> Efficacy<'a> {
         &mut self,
         description: String,
         category: Option<String>,
-    ) -> Result<(), errors::EfficacyError> {
+    ) -> EfficacyResult<()> {
         let new_task = objects::Task {
             category: category,
             description,
@@ -44,7 +46,7 @@ impl<'a> Efficacy<'a> {
         self.state.save()
     }
 
-    pub fn complete_task(&mut self, id: usize) -> Result<(), errors::EfficacyError> {
+    pub fn complete_task(&mut self, id: usize) -> EfficacyResult<()> {
         match self.state.task_objects.get_mut(id) {
             Some(t) => {
                 t.state = objects::TaskState::Done;
@@ -60,7 +62,7 @@ impl<'a> Efficacy<'a> {
         id: usize,
         new_description: Option<String>,
         new_category: Option<String>,
-    ) -> Result<(), errors::EfficacyError> {
+    ) -> EfficacyResult<()> {
         let original_task = match self.state.task_objects.get_mut(id) {
             Some(t) => t,
             None => return Err(errors::EfficacyError::MismatchedIdError),
@@ -82,7 +84,7 @@ impl<'a> Efficacy<'a> {
         self.state.save()
     }
 
-    pub fn delete_task(&mut self, id: usize) -> Result<objects::Task, errors::EfficacyError> {
+    pub fn delete_task(&mut self, id: usize) -> EfficacyResult<objects::Task> {
         if id >= self.state.task_objects.len() {
             println!("ID not valid");
             return Err(errors::EfficacyError::MismatchedIdError);
@@ -103,7 +105,7 @@ impl<'a> Efficacy<'a> {
         &mut self,
         category: String,
         new_category_title: String,
-    ) -> Result<(), errors::EfficacyError> {
+    ) -> EfficacyResult<()> {
         let ids_to_move = match self.state.category_map.get(&category) {
             Some(ids) => ids.clone(),
             None => return Err(errors::EfficacyError::NonexistentCategoryError),
@@ -123,7 +125,7 @@ impl<'a> Efficacy<'a> {
     pub fn delete_category(
         &mut self,
         category: Option<String>,
-    ) -> Result<(), errors::EfficacyError> {
+    ) -> EfficacyResult<()> {
         let category = match category {
             Some(s) => s,
             None => String::from("No category"),
@@ -145,7 +147,7 @@ impl<'a> Efficacy<'a> {
 
 // Cleaning Operations
 impl<'a> Efficacy<'a> {
-    pub fn clean(&mut self) -> Result<(), errors::EfficacyError> {
+    pub fn clean(&mut self) -> EfficacyResult<()> {
         self.state.task_objects = self
             .state
             .task_objects
@@ -159,9 +161,28 @@ impl<'a> Efficacy<'a> {
     }
 }
 
+// Context operations
+impl<'a> Efficacy<'a> {
+    pub fn new_context(&mut self, context_name: &String) -> EfficacyResult<()> {
+        self.state.new_context(context_name)
+    }
+
+    pub fn change_context(&mut self, context_name: &String) -> EfficacyResult<()> {
+        self.state.change_context(context_name)
+    }
+
+    pub fn context_exists(&self, context_name: &String) -> bool {
+        self.state.context_exists(context_name)
+    }
+
+    pub fn delete_context(&mut self, context_name: &String) -> EfficacyResult<()> {
+        self.state.delete_context(context_name)
+    }
+}
+
 // Listing Operations
 impl<'a> Efficacy<'a> {
-    pub fn list(&self) -> Result<String, errors::EfficacyError> {
+    pub fn list(&self) -> EfficacyResult<String> {
         let mut result = String::from("\n");
 
         for (category, ids) in sorted(self.state.category_map.iter()) {
@@ -203,8 +224,22 @@ impl<'a> Efficacy<'a> {
         Ok(result)
     }
 
+    pub fn list_contexts(&self) -> EfficacyResult<String> {
+        let mut result = String::from("\n");
+
+        for key in sorted(self.state.task_file_paths.keys()) {
+            let context_line = formatting::format_context(key, key.eq(&self.state.current_context.context_name)) + "\n";
+            result.push_str(&context_line);
+        }
+
+        Ok(result)
+    }
+
     // Debug information
-    pub fn debug(&self) -> Result<(), errors::EfficacyError> {
+    pub fn debug(&self) -> EfficacyResult<()> {
+        println!("Context:");
+        println!("{:#?}", self.state.current_context);
+
         println!("Task objects:");
         println!("{:#?}", self.state.task_objects);
 
