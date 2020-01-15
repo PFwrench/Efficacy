@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate clap;
+extern crate chrono;
 extern crate colored;
 extern crate config;
 extern crate itertools;

@@ -2,6 +2,9 @@ use crate::program;
 use clap::App;
 use std::error::Error;
 
+pub mod dates;
+mod errors;
+
 pub fn parse() -> Result<(), Box<dyn Error>> {
     let settings = program::settings::Settings::new()?;
     let mut eff = program::Efficacy::init(&settings)?;
@@ -42,8 +45,21 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
             Some(s) => Some(String::from(s)),
             None => None,
         };
+        let due = match matches.value_of("due") {
+            Some(d) => match dates::string_to_weekday(d) {
+                Ok(w) => Some(dates::weekday_to_due_date(w)),
+                Err(_) => match dates::string_to_due_date(d) {
+                    Ok(dd) => Some(dd),
+                    Err(_) => {
+                        println!("Due date provided isn't in 'YYYY-MM-DD HH:MM:SS' format.");
+                        return Ok(());
+                    }
+                },
+            },
+            None => None,
+        };
         let description = value_t_or_exit!(matches.value_of("DESCRIPTION"), String);
-        match eff.add_task(description, category, information) {
+        match eff.add_task(description, category, information, due) {
             Ok(_) => println!("{}", eff.list()?),
             Err(_) => println!("There was an error in creating the new task."),
         }
@@ -64,9 +80,23 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
                 Some(s) => Some(String::from(s)),
                 None => None,
             };
+            let due = match matches.value_of("due") {
+                Some(d) => match dates::string_to_weekday(d) {
+                    Ok(w) => Some(dates::weekday_to_due_date(w)),
+                    Err(_) => match dates::string_to_due_date(d) {
+                        Ok(dd) => Some(dd),
+                        Err(_) => {
+                            println!("Due date provided isn't in 'YYYY-MM-DD HH:MM:SS' format.");
+                            return Ok(());
+                        }
+                    },
+                },
+                None => None,
+            };
 
-            if description.is_some() || category.is_some() || information.is_some() {
-                eff.edit_task(id, description, category, information)?;
+            if description.is_some() || category.is_some() || information.is_some() || due.is_some()
+            {
+                eff.edit_task(id, description, category, information, due)?;
                 println!("{}", eff.list()?);
             } else {
                 println!("No new information provided.");
@@ -143,3 +173,20 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+// mod test {
+//     #[test]
+//     fn test_due_date() {
+//         let test_str = "2020-01-14 09:10:00";
+//         let ndt = NaiveDateTime::parse_from_str(test_str, dates::DATE_FMT);
+//         println!("Naive: {:?}", ndt);
+
+//         let adt = Local.datetime_from_str(test_str, dates::DATE_FMT);
+
+//         // let adt = DateTime::parse_from_str(test_str, dates::DATE_FMT);
+//         println!("DateTime: {:?}", adt);
+//         // let adt = adt.unwrap().with_timezone(&Local);
+//         // println!("With timezone: {:?}", adt);
+//         // println!("days to add: {}", days_to_add);
+//     }
+// }

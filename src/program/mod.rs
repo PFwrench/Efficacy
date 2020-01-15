@@ -4,6 +4,7 @@ mod objects;
 pub mod settings;
 mod state;
 
+use chrono::{DateTime, Utc};
 use itertools::{rev, sorted};
 
 type EfficacyResult<T> = Result<T, errors::EfficacyError>;
@@ -33,12 +34,14 @@ impl<'a> Efficacy<'a> {
         description: String,
         category: Option<String>,
         information: Option<String>,
+        due: Option<DateTime<Utc>>,
     ) -> EfficacyResult<()> {
         let new_task = objects::Task {
             category: category,
             description,
             state: objects::TaskState::Todo,
             information,
+            due,
         };
 
         self.state
@@ -52,6 +55,7 @@ impl<'a> Efficacy<'a> {
         match self.state.task_objects.get_mut(id) {
             Some(t) => {
                 t.state = objects::TaskState::Done;
+                t.due = None;
             }
             None => return Err(errors::EfficacyError::MismatchedIdError),
         }
@@ -65,6 +69,7 @@ impl<'a> Efficacy<'a> {
         new_description: Option<String>,
         new_category: Option<String>,
         new_information: Option<String>,
+        new_due: Option<DateTime<Utc>>,
     ) -> EfficacyResult<()> {
         let original_task = match self.state.task_objects.get_mut(id) {
             Some(t) => t,
@@ -78,6 +83,11 @@ impl<'a> Efficacy<'a> {
 
         match new_information {
             Some(i) => original_task.information = Some(i),
+            None => (),
+        }
+
+        match new_due {
+            Some(d) => original_task.due = Some(d),
             None => (),
         }
 
@@ -279,6 +289,7 @@ mod tests {
             state: TaskState::Done,
             category: Option::Some(String::from("School")),
             information: Some(String::new()),
+            due: None,
         };
         let task_fmt_string = String::from("%b %d (#%i)");
 

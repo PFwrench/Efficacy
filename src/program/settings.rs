@@ -34,7 +34,7 @@ impl Settings {
 
         // Defaults
         s.set_default("data_file_path", default_data_path.to_str())?;
-        s.set_default("task_format", "%b %d %i")?;
+        s.set_default("task_format", "%b %d %i -> %D")?;
 
         if config_path.exists() {
             s.merge(File::from(config_path))?;
@@ -48,7 +48,7 @@ impl Settings {
 
         // Ensures the format string is valid
         if !formatting::valid_task_format(&s.get("task_format")?) {
-            s.set("task_format", "%b %d")?;
+            s.set("task_format", "%b %d %i -> %D")?;
         }
 
         s.try_into()

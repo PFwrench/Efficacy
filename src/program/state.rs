@@ -3,7 +3,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
-use super::{errors::EfficacyError, objects, settings::Settings};
+use super::{errors::EfficacyError, objects, settings::Settings, EfficacyResult};
 
 #[derive(Debug)]
 pub struct State<'a> {
@@ -18,7 +18,7 @@ pub struct State<'a> {
 // Core State functionality
 impl<'a> State<'a> {
     /// Checks for existence of or creates directories and files used in maintaining state.
-    pub fn new(settings: &'a Settings) -> Result<Self, EfficacyError> {
+    pub fn new(settings: &'a Settings) -> EfficacyResult<Self> {
         let mut continue_creating = false;
 
         let data_dir = PathBuf::from(&settings.data_file_path);
@@ -89,7 +89,7 @@ impl<'a> State<'a> {
         Ok(new_state)
     }
 
-    pub fn save(&mut self) -> Result<(), EfficacyError> {
+    pub fn save(&mut self) -> EfficacyResult<()> {
         let tasks_serialized = serde_json::to_string(&self.task_objects).unwrap();
 
         let fp_result = &self.task_file_paths.get(&self.current_context.context_name);
@@ -108,7 +108,7 @@ impl<'a> State<'a> {
         self.save_context()
     }
 
-    pub fn load(&mut self) -> Result<(), EfficacyError> {
+    pub fn load(&mut self) -> EfficacyResult<()> {
         let mut tasks_string = String::new();
 
         self.load_context()?;
@@ -184,7 +184,7 @@ impl<'a> State<'a> {
 
 // Context operations
 impl<'a> State<'a> {
-    pub fn save_context(&self) -> Result<(), EfficacyError> {
+    pub fn save_context(&self) -> EfficacyResult<()> {
         let context_serialized = serde_json::to_string(&self.current_context).unwrap();
 
         OpenOptions::new()
@@ -196,7 +196,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn load_context(&mut self) -> Result<(), EfficacyError> {
+    pub fn load_context(&mut self) -> EfficacyResult<()> {
         let mut ctx_string = String::new();
 
         OpenOptions::new()
@@ -214,7 +214,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn new_context(&mut self, context_name: &String) -> Result<(), EfficacyError> {
+    pub fn new_context(&mut self, context_name: &String) -> EfficacyResult<()> {
         if context_name.eq(&String::from("default")) {
             println!(
                 "Cannot make a new context with the name 'default', that context is reserved."
@@ -239,7 +239,7 @@ impl<'a> State<'a> {
         self.change_context(&trimmed_context_name)
     }
 
-    pub fn change_context(&mut self, context_name: &String) -> Result<(), EfficacyError> {
+    pub fn change_context(&mut self, context_name: &String) -> EfficacyResult<()> {
         if !self.context_exists(context_name) {
             println!("Context '{}' does not exist", context_name);
             return Err(EfficacyError::BadContextNameError);
@@ -259,7 +259,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn delete_context(&mut self, context_name: &String) -> Result<(), EfficacyError> {
+    pub fn delete_context(&mut self, context_name: &String) -> EfficacyResult<()> {
         if context_name.eq("default") {
             println!("Cannot delete the default context.");
             return Ok(());
@@ -304,24 +304,28 @@ mod test {
             state: TaskState::Done,
             category: Option::Some(String::from("School")),
             information: Some(String::new()),
+            due: None,
         };
         let task_2 = Task {
             description: String::from("Study for exam"),
             state: TaskState::Todo,
             category: Option::Some(String::from("School")),
             information: Some(String::new()),
+            due: None,
         };
         let task_3 = Task {
             description: String::from("Get haircut"),
             state: TaskState::Todo,
             category: Option::Some(String::from("Personal")),
             information: Some(String::new()),
+            due: None,
         };
         let task_4 = Task {
             description: String::from("Workout"),
             state: TaskState::Todo,
             category: Option::None,
             information: Some(String::new()),
+            due: None,
         };
 
         vec![task_1, task_2, task_3, task_4]

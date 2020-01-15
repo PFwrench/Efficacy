@@ -1,5 +1,5 @@
 name: efficacy
-version: "0.2.2"
+version: "0.3.0"
 author: fwrench
 about: A to-do list implementation
 subcommands:
@@ -29,6 +29,11 @@ subcommands:
                 help: Category name
                 short: c
                 long: category
+                takes_value: true
+            - due:
+                help: Due date
+                short: d
+                long: due
                 takes_value: true
             - DESCRIPTION:
                 help: Desciption for the new task
@@ -66,6 +71,10 @@ subcommands:
                     - information:
                         short: i
                         help: New information for the task
+                        takes_value: true
+                    - due:
+                        long: --due
+                        help: New due date for the task
                         takes_value: true
             - category:
                 about: Edits a category
