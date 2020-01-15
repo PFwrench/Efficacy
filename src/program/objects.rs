@@ -11,9 +11,10 @@ pub struct Task {
     pub description: String,
     pub state: TaskState,
     pub category: Option<String>,
+    pub information: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Context {
-    pub context_name: String
+    pub context_name: String,
 }

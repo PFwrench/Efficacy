@@ -14,7 +14,16 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
         if matches.is_present("context") {
             println!("{}", eff.list_contexts()?);
         } else {
-            println!("{}", eff.list()?);   
+            match matches.value_of("ID") {
+                Some(id) => {
+                    let id: usize = id.parse()?;
+                    let task_string = eff
+                        .list_task(id)
+                        .unwrap_or(String::from("Invalid ID provided"));
+                    println!("{}", task_string);
+                }
+                None => println!("{}", eff.list()?),
+            }
         }
 
     // DONE command
@@ -29,8 +38,12 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
             Some(s) => Option::Some(String::from(s)),
             None => Option::None,
         };
+        let information = match matches.value_of("information") {
+            Some(s) => Some(String::from(s)),
+            None => None,
+        };
         let description = value_t_or_exit!(matches.value_of("DESCRIPTION"), String);
-        match eff.add_task(description, category) {
+        match eff.add_task(description, category, information) {
             Ok(_) => println!("{}", eff.list()?),
             Err(_) => println!("There was an error in creating the new task."),
         }
@@ -47,12 +60,16 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
                 Some(s) => Some(String::from(s)),
                 None => None,
             };
+            let information = match matches.value_of("information") {
+                Some(s) => Some(String::from(s)),
+                None => None,
+            };
 
-            if description.is_some() || category.is_some() {
-                eff.edit_task(id, description, category)?;
+            if description.is_some() || category.is_some() || information.is_some() {
+                eff.edit_task(id, description, category, information)?;
                 println!("{}", eff.list()?);
             } else {
-                println!("")
+                println!("No new information provided.");
             }
         } else if let Some(matches) = matches.subcommand_matches("category") {
             let old_title = value_t_or_exit!(matches.value_of("OLD_TITLE"), String);
@@ -84,7 +101,7 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
             let context = value_t_or_exit!(matches.value_of("CONTEXT"), String);
             match eff.delete_context(&context) {
                 Ok(_) => println!("Context '{}' deleted successfully.", context),
-                Err(e) => println!("Error when deleting context: {:?}", e)
+                Err(e) => println!("Error when deleting context: {:?}", e),
             }
         }
 
@@ -97,20 +114,23 @@ pub fn parse() -> Result<(), Box<dyn Error>> {
     } else if let Some(matches) = matches.subcommand_matches("context") {
         let context = match matches.value_of("CONTEXT") {
             Some(s) => String::from(s),
-            None => String::from("default")
+            None => String::from("default"),
         };
         if matches.is_present("new") {
             match eff.new_context(&context) {
                 Ok(_) => {
-                    println!("Context '{}' created successfully! Switched to '{0}'", context);
+                    println!(
+                        "Context '{}' created successfully! Switched to '{0}'",
+                        context
+                    );
                     return Ok(());
-                },
-                Err(_) => return Ok(())
+                }
+                Err(_) => return Ok(()),
             }
         } else {
             match eff.change_context(&context) {
                 Ok(_) => (),
-                Err(_) => return Ok(())
+                Err(_) => return Ok(()),
             }
         }
 

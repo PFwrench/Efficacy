@@ -28,7 +28,7 @@ impl<'a> State<'a> {
         }
 
         let default_context = objects::Context {
-            context_name: String::from("default")
+            context_name: String::from("default"),
         };
 
         let context_file_path =
@@ -57,10 +57,12 @@ impl<'a> State<'a> {
         for entry in std::fs::read_dir(&settings.data_file_path)? {
             let entry = entry?;
             let path = entry.path();
-            if !path.as_os_str().eq(context_file_path.as_os_str()) && !path.as_os_str().eq(default_task_file_path.as_os_str()) {
+            if !path.as_os_str().eq(context_file_path.as_os_str())
+                && !path.as_os_str().eq(default_task_file_path.as_os_str())
+            {
                 let path_key = String::from(path.file_stem().unwrap().to_str().unwrap());
                 task_file_paths.insert(path_key, path);
-            } 
+            }
         }
 
         task_file_paths.insert(String::from("default"), default_task_file_path);
@@ -94,7 +96,7 @@ impl<'a> State<'a> {
 
         let file_path = match fp_result {
             Some(pb) => pb,
-            None => return Err(EfficacyError::MalformedContextError)
+            None => return Err(EfficacyError::MalformedContextError),
         };
 
         OpenOptions::new()
@@ -114,7 +116,7 @@ impl<'a> State<'a> {
         let fp_result = &self.task_file_paths.get(&self.current_context.context_name);
         let file_path = match fp_result {
             Some(pb) => pb,
-            None => return Err(EfficacyError::MalformedContextError)
+            None => return Err(EfficacyError::MalformedContextError),
         };
 
         OpenOptions::new()
@@ -184,7 +186,7 @@ impl<'a> State<'a> {
 impl<'a> State<'a> {
     pub fn save_context(&self) -> Result<(), EfficacyError> {
         let context_serialized = serde_json::to_string(&self.current_context).unwrap();
-            
+
         OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -205,8 +207,8 @@ impl<'a> State<'a> {
         self.current_context = match serde_json::from_str(&ctx_string[..]) {
             Ok(o) => o,
             Err(_) => objects::Context {
-                context_name: String::from("default")
-            }
+                context_name: String::from("default"),
+            },
         };
 
         Ok(())
@@ -214,7 +216,9 @@ impl<'a> State<'a> {
 
     pub fn new_context(&mut self, context_name: &String) -> Result<(), EfficacyError> {
         if context_name.eq(&String::from("default")) {
-            println!("Cannot make a new context with the name 'default', that context is reserved.");
+            println!(
+                "Cannot make a new context with the name 'default', that context is reserved."
+            );
             return Err(EfficacyError::BadContextNameError);
         }
 
@@ -223,12 +227,14 @@ impl<'a> State<'a> {
             return Err(EfficacyError::BadContextNameError);
         }
 
-        let new_context_task_file_path =
-            PathBuf::from(&self.settings.data_file_path).join(PathBuf::from(format!("{}{}", &trimmed_context_name, ".json")));
+        let new_context_task_file_path = PathBuf::from(&self.settings.data_file_path).join(
+            PathBuf::from(format!("{}{}", &trimmed_context_name, ".json")),
+        );
 
         std::fs::File::create(&new_context_task_file_path)?;
 
-        self.task_file_paths.insert(trimmed_context_name.clone(), new_context_task_file_path);
+        self.task_file_paths
+            .insert(trimmed_context_name.clone(), new_context_task_file_path);
 
         self.change_context(&trimmed_context_name)
     }
@@ -260,7 +266,9 @@ impl<'a> State<'a> {
         }
 
         if context_name.eq(&self.current_context.context_name) {
-            println!("Cannot delete the current context. Switch to another context before deleting.");
+            println!(
+                "Cannot delete the current context. Switch to another context before deleting."
+            );
             return Ok(());
         }
 
@@ -280,7 +288,7 @@ impl<'a> State<'a> {
     pub fn context_exists(&self, context_name: &String) -> bool {
         match self.task_file_paths.get(context_name) {
             Some(_) => true,
-            None => false
+            None => false,
         }
     }
 }
@@ -295,21 +303,25 @@ mod test {
             description: String::from("Add classes to calendar"),
             state: TaskState::Done,
             category: Option::Some(String::from("School")),
+            information: Some(String::new()),
         };
         let task_2 = Task {
             description: String::from("Study for exam"),
             state: TaskState::Todo,
             category: Option::Some(String::from("School")),
+            information: Some(String::new()),
         };
         let task_3 = Task {
             description: String::from("Get haircut"),
             state: TaskState::Todo,
             category: Option::Some(String::from("Personal")),
+            information: Some(String::new()),
         };
         let task_4 = Task {
             description: String::from("Workout"),
             state: TaskState::Todo,
             category: Option::None,
+            information: Some(String::new()),
         };
 
         vec![task_1, task_2, task_3, task_4]

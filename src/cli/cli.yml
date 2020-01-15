@@ -1,5 +1,5 @@
 name: efficacy
-version: "0.2.1"
+version: "0.2.2"
 author: fwrench
 about: A to-do list implementation
 subcommands:
@@ -11,6 +11,9 @@ subcommands:
                 short: -c
                 long: context
                 help: Specifies that contexts should be listed
+            - ID:
+                help: ID of the task to expand
+                conflicts_with: context
     - done:
         about: Marks a task as complete
         alias: x
@@ -59,6 +62,10 @@ subcommands:
                     - category:
                         short: c
                         help: New category for the task
+                        takes_value: true
+                    - information:
+                        short: i
+                        help: New information for the task
                         takes_value: true
             - category:
                 about: Edits a category

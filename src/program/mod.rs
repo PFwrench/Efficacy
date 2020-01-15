@@ -32,11 +32,13 @@ impl<'a> Efficacy<'a> {
         &mut self,
         description: String,
         category: Option<String>,
+        information: Option<String>,
     ) -> EfficacyResult<()> {
         let new_task = objects::Task {
             category: category,
             description,
             state: objects::TaskState::Todo,
+            information,
         };
 
         self.state
@@ -62,6 +64,7 @@ impl<'a> Efficacy<'a> {
         id: usize,
         new_description: Option<String>,
         new_category: Option<String>,
+        new_information: Option<String>,
     ) -> EfficacyResult<()> {
         let original_task = match self.state.task_objects.get_mut(id) {
             Some(t) => t,
@@ -70,6 +73,11 @@ impl<'a> Efficacy<'a> {
 
         match new_description {
             Some(d) => original_task.description = d,
+            None => (),
+        }
+
+        match new_information {
+            Some(i) => original_task.information = Some(i),
             None => (),
         }
 
@@ -122,10 +130,7 @@ impl<'a> Efficacy<'a> {
         self.state.save()
     }
 
-    pub fn delete_category(
-        &mut self,
-        category: Option<String>,
-    ) -> EfficacyResult<()> {
+    pub fn delete_category(&mut self, category: Option<String>) -> EfficacyResult<()> {
         let category = match category {
             Some(s) => s,
             None => String::from("No category"),
@@ -228,11 +233,22 @@ impl<'a> Efficacy<'a> {
         let mut result = String::from("\n");
 
         for key in sorted(self.state.task_file_paths.keys()) {
-            let context_line = formatting::format_context(key, key.eq(&self.state.current_context.context_name)) + "\n";
+            let context_line =
+                formatting::format_context(key, key.eq(&self.state.current_context.context_name))
+                    + "\n";
             result.push_str(&context_line);
         }
 
         Ok(result)
+    }
+
+    pub fn list_task(&self, id: usize) -> EfficacyResult<String> {
+        let task = match self.state.task_objects.get(id) {
+            Some(t) => t,
+            None => return Err(errors::EfficacyError::MismatchedIdError),
+        };
+
+        Ok(formatting::format_task_spotlight(task, id))
     }
 
     // Debug information
@@ -262,6 +278,7 @@ mod tests {
             description: String::from("Add classes to calendar"),
             state: TaskState::Done,
             category: Option::Some(String::from("School")),
+            information: Some(String::new()),
         };
         let task_fmt_string = String::from("%b %d (#%i)");
 

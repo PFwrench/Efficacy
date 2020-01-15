@@ -2,7 +2,6 @@ use super::objects::{Task, TaskState};
 use colored::Colorize;
 
 const TASK_CHARS: [char; 3] = ['b', 'd', 'i'];
-// const CATEGORY_CHARS: [char; 2] = ['t', 'c'];
 
 pub fn format_task(format_string: &String, to_format: &Task, id: usize) -> String {
     let mut new_string = String::new();
@@ -32,6 +31,37 @@ pub fn format_task(format_string: &String, to_format: &Task, id: usize) -> Strin
     new_string.replace("%i", &format!("#{}", id).bright_black().to_string())
 }
 
+pub fn format_task_spotlight(task: &Task, id: usize) -> String {
+    let mut new_string = String::from("\n");
+
+    match task.state {
+        TaskState::Todo => new_string.push_str("[ ] "),
+        TaskState::Done => new_string.push_str("[X] "),
+    }
+
+    new_string.push_str(&task.description.bold().to_string());
+    new_string.push('\n');
+    new_string.push_str(
+        &format!(
+            "category: {}\n",
+            task.category.as_ref().unwrap_or(&String::from("None"))
+        )
+        .bright_black()
+        .to_string(),
+    );
+    new_string.push_str(&format!("id: #{}\n", id).bright_black().to_string());
+    new_string.push('\n');
+    new_string.push_str(
+        &task
+            .information
+            .as_ref()
+            .unwrap_or(&String::from("No information.").bright_black().to_string()),
+    );
+    new_string.push('\n');
+
+    new_string
+}
+
 pub fn format_category(category: &String, ids: &Vec<usize>) -> String {
     let mut new_string = String::new();
 
@@ -49,7 +79,7 @@ pub fn format_context(context: &String, is_current: bool) -> String {
     } else {
         new_string.push_str(&context.to_string());
     }
-    
+
     new_string
 }
 
