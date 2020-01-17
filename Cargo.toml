@@ -1,6 +1,6 @@
 [package]
 name = "efficacy"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Peter French peter.fwrench@gmail.com"]
 license = "MIT OR Apache-2.0"
 description = "A todo list command line implementation"

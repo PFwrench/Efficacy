@@ -31,13 +31,26 @@ pub fn format_task(format_string: &String, to_format: &Task, id: usize) -> Strin
     }
 
     new_string = new_string.replace("%i", &format!("#{}", id).bright_black().to_string());
-    match to_format.due {
-        Some(d) => new_string.replace("%D", &format_due_date(d)),
+    new_string = match to_format.due {
+        Some(d) => match &to_format.state {
+            TaskState::Done => new_string.replace("%D", &format!("{}", d.with_timezone(&Local).format(DATE_DISPLAY_FORMAT)).bright_black().to_string()),
+            _ => new_string.replace("%D", &format_due_date(d, &to_format.state))
+        },
         None => new_string.replace("-> %D", ""),
+    };
+
+    match &to_format.state {
+        TaskState::Done => new_string.bright_black().to_string(),
+        _ => new_string
     }
 }
 
-pub fn format_due_date(due: DateTime<Utc>) -> String {
+pub fn format_due_date(due: DateTime<Utc>, state: &TaskState) -> String {
+    match state {
+        TaskState::Done => return String::from("done").bright_black().to_string(),
+        _ => ()
+    }
+
     let now = Utc::now();
     let mut negative = false;
     let diff = if due - now < Duration::days(0) {
@@ -84,13 +97,13 @@ pub fn format_due_date(due: DateTime<Utc>) -> String {
     } else if diff < Duration::weeks(4) {
         if diff.num_days() == 1 {
             new_string.push_str(&format!("{} day", diff.num_days()).red().to_string());
-        } else if diff.num_days() > 5 {
+        } else if diff.num_days() < 5 {
             new_string.push_str(&format!("{} days", diff.num_days()).bright_red().to_string());
         } else {
-            new_string.push_str(&format!("{} days", diff.num_days()).bright_red().to_string());
+            new_string.push_str(&format!("{} days", diff.num_days()));
         }
     } else if diff < Duration::weeks(52) {
-        let month_str = if diff.num_weeks() < 6 {
+        let month_str = if diff.num_weeks() < 8 {
             "month"
         } else {
             "months"
@@ -125,7 +138,7 @@ pub fn format_task_spotlight(task: &Task, id: usize) -> String {
     new_string.push_str(&String::from("Due: ").bright_black().to_string());
     match task.due {
         Some(d) => {
-            new_string.push_str(&format_due_date(d));
+            new_string.push_str(&format_due_date(d, &task.state));
             new_string.push_str(
                 &format!(" ({})", d.with_timezone(&Local).format(DATE_DISPLAY_FORMAT))
                     .bright_black()

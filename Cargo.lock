@@ -204,7 +204,7 @@ dependencies = [
 
 [[package]]
 name = "efficacy"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.27.1 (registry+https://github.com/rust-lang/crates.io-index)",

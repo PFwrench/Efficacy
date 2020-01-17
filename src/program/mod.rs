@@ -53,10 +53,7 @@ impl<'a> Efficacy<'a> {
 
     pub fn complete_task(&mut self, id: usize) -> EfficacyResult<()> {
         match self.state.task_objects.get_mut(id) {
-            Some(t) => {
-                t.state = objects::TaskState::Done;
-                t.due = None;
-            }
+            Some(t) => t.state = objects::TaskState::Done,
             None => return Err(errors::EfficacyError::MismatchedIdError),
         }
 
